@@ -1,18 +1,19 @@
 #include <cstdio>
 #include <cstring>
 #include <set>
+#include <iostream>
 #include "graph.h"
 #include "error.h"
 #include "random.h"
 
 namespace {
-  char commemt_char = '#';
+  const char COMMENT_CHAR  = '#';
   bool is_comment(const char *line) {
     // find first charactor
     while (isspace(*line)) {
       ++line;
     }
-    return *line == comment_char;
+    return *line == COMMENT_CHAR;
   }
   const int MAXN = 1000;
 }
@@ -21,7 +22,7 @@ namespace nodewalker {
 
   int graph::getID(std::string curp, bool issearch) {
     if (issearch) {
-      std::map<std::string, int>::iterator iter;
+      IDMap_t::iterator iter;
       iter = idmap_.find(curp);
       if (iter != idmap_.end()) return (*iter).second;
     }
@@ -31,14 +32,18 @@ namespace nodewalker {
     pn->degree = 0;
     pn->ishead = false;
     pnvec_.push_back(pn);
-    idmap_[curp] = nnode_;
+    idmap_.insert(IDMap_t::value_type(curp, nnode_));
     return nnode_++;
   }
 
   graph::graph(const char *inputfile, const int maxnode) : inputfile_(inputfile), nnode_(0), maxnode_(maxnode) {
+    using std::cout;
+    using std::endl;
+
     FILE * pfile;
     char* line = new char[MAXN];
-    char* word = new char[MAXN];
+    char* word1 = new char[MAXN];
+    char* word2 = new char[MAXN];
     pfile = fopen(inputfile_.c_str(), "r");
     //int linecnt = 0;
     if (pfile == NULL) {
@@ -52,36 +57,19 @@ namespace nodewalker {
           continue;
         }
         int len = 0;
-        sscanf(line, "%s", word);
-        /* addtion for "idols-*" data */
-        // remove ':'
-        word[strlen(word) - 1] = '\0';
-        /******************************/
-        int curid = getID(word, true);
-        if (curid == -1) continue;
-        len += strlen(word) + 1;
-        while (sscanf(line + len, "%s", word) != EOF) {
-          int curnbid = getID(word, true);
-          if (curnbid == -1) {
-            len += strlen(word) + 1;
-            continue;
-          }
+        sscanf(line, "%s%s", word1, word2);
+        int id1 = getID(word1, true);
+        if (id1 == -1 ) continue;
+        int id2 = getID(word2, true);
+        if (id2 == -1) continue;
 
-          // insert to set to avoid duplicates
-          pnvec_[curid]->nbset.insert(curnbid);
-
-          // write edge file for drawing network
-          //FILE *edgefp = fopen("nwedges.txt", "a");
-          //fprintf(edgefp, "%d;%d;Undirected;1\n", curid, curnbid);
-          //fclose(edgefp);
-
-          pnvec_[curnbid]->nbset.insert(curid);
-          len += strlen(word) + 1;
-        }
+        pnvec_[id1]->nbset.insert(id2);
+        pnvec_[id2]->nbset.insert(id1);
+        //cout << "id1: " << id1 << "id2: " << id2 << endl;
       }
     }
     // construct nbvec from nbset for every node
-    std::map<std::string, int>::iterator iterm;
+    IDMap_t::iterator iterm;
     std::set<int>::iterator iters;
     for (iterm = idmap_.begin(); iterm != idmap_.end(); ++iterm) {
       int curid = (*iterm).second;
@@ -93,7 +81,8 @@ namespace nodewalker {
     }
     fclose(pfile);
     delete[] line;
-    delete[] word;
+    delete[] word1;
+    delete[] word2;
 
     this->generate_walker(false);
   }

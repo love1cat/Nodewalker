@@ -74,9 +74,10 @@ namespace nodewalker {
         int rank = comm.Get_rank();
 
         random::set_seed(seed_);
-        std::string partialgraphPrefix = "partialGraph";
+        std::string partialgraphPrefix = "pg";
         if(rank==0){
-            graph g(num_, ncluster_, false);
+            //graph g(num_, ncluster_, false);
+            graph g("com-dblp.ungraph.txt", 400000);
             printf("Dividing graph...\n");
             partialgraph::divide_graph(g, 1, partialgraphPrefix);
             printf("Done dividing graph...\n");
